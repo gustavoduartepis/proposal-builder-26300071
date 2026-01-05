@@ -1,160 +1,130 @@
 import { useState } from 'react';
-import { AlertTriangle, Zap, Rocket } from 'lucide-react';
-import { PlanCard } from '@/components/PlanCard';
-import { FidelityCard } from '@/components/FidelityCard';
-import { ModuleCard } from '@/components/ModuleCard';
-import { SummaryPanel } from '@/components/SummaryPanel';
-import { 
-  plans, 
-  modules, 
-  fidelities, 
-  PlanType, 
-  FidelityType, 
-  ModuleType 
-} from '@/data/pricingData';
-import { cn } from '@/lib/utils';
+import { plans, fidelities, modules, Plan, Fidelity, Module, getPlanTotal } from '@/data/pricingData';
+import { PlanSelector } from '@/components/PlanSelector';
+import { PeriodCard } from '@/components/PeriodCard';
+import { ModuleCheckbox } from '@/components/ModuleCheckbox';
+import { ComparisonPanel } from '@/components/ComparisonPanel';
 
 const Index = () => {
-  const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
-  const [selectedFidelity, setSelectedFidelity] = useState<FidelityType | null>(null);
-  const [selectedModules, setSelectedModules] = useState<ModuleType[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [selectedFidelity, setSelectedFidelity] = useState<Fidelity | null>(null);
+  const [selectedModules, setSelectedModules] = useState<Module[]>([]);
 
-  const handleModuleToggle = (moduleId: ModuleType) => {
-    setSelectedModules(prev => 
-      prev.includes(moduleId) 
-        ? prev.filter(m => m !== moduleId)
-        : [...prev, moduleId]
+  const toggleModule = (module: Module) => {
+    setSelectedModules((prev) =>
+      prev.find((m) => m.id === module.id)
+        ? prev.filter((m) => m.id !== module.id)
+        : [...prev, module]
     );
   };
 
-  const selectedPlanData = plans.find(p => p.id === selectedPlan) || null;
-  const selectedFidelityData = fidelities.find(f => f.id === selectedFidelity);
-  const selectedModulesData = modules.filter(m => selectedModules.includes(m.id));
-  
-  const isComplete = selectedPlan && selectedFidelity;
-  const showCardWarning = selectedFidelity && selectedFidelity !== 'mensal';
+  const currentMonths = selectedFidelity?.months || 1;
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-6">
-      <div className="max-w-[1600px] mx-auto">
+    <div className="min-h-screen bg-background p-6">
+      {/* Decorative circles */}
+      <div className="fixed top-0 right-0 w-64 h-64 bg-secondary rounded-full -translate-y-1/2 translate-x-1/2 opacity-50" />
+      <div className="fixed bottom-0 left-0 w-48 h-48 bg-secondary rounded-full translate-y-1/2 -translate-x-1/2 opacity-50" />
+
+      <div className="max-w-7xl mx-auto relative">
         {/* Header */}
-        <header className="text-center mb-6 animate-fade-in">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary mb-3">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold text-secondary-foreground">Calculadora de Planos</span>
-          </div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold text-foreground mb-2">
-            Monte a <span className="text-gradient-purple">proposta perfeita</span>
-          </h1>
-          <p className="text-muted-foreground max-w-lg mx-auto text-sm">
-            Selecione o plano ideal, escolha a fidelidade e personalize com módulos extras
-          </p>
-        </header>
+        <h1 className="text-3xl font-bold text-center mb-8">
+          <span className="text-foreground">Calculadora </span>
+          <span className="text-gradient-purple">CardapioWEB</span>
+        </h1>
 
-        <div className="grid lg:grid-cols-[1fr,400px] gap-6">
-          {/* Left Column - Selection */}
-          <div className="space-y-5">
-            {/* Plans Section */}
-            <section className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-7 h-7 rounded-lg bg-gradient-purple flex items-center justify-center text-sm font-bold text-primary-foreground shadow-button">1</span>
-                <h2 className="text-lg font-bold text-foreground">Escolha o Plano</h2>
-                {!selectedPlan && <span className="text-xs text-coral font-medium animate-pulse">← Obrigatório</span>}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Configuration */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-card rounded-2xl p-6 shadow-sm">
+              {/* Section Number */}
+              <div className="flex items-center gap-3 mb-6">
+                <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold">
+                  1
+                </span>
+                <h2 className="text-xl font-bold text-primary">Configuração do Plano</h2>
               </div>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {plans.map(plan => (
-                  <PlanCard
-                    key={plan.id}
-                    plan={plan}
-                    isSelected={selectedPlan === plan.id}
-                    onSelect={() => setSelectedPlan(plan.id)}
-                  />
-                ))}
-              </div>
-            </section>
 
-            {/* Fidelity Section */}
-            <section className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-7 h-7 rounded-lg bg-gradient-purple flex items-center justify-center text-sm font-bold text-primary-foreground shadow-button">2</span>
-                <h2 className="text-lg font-bold text-foreground">Fidelidade & Pagamento</h2>
-                {!selectedFidelity && <span className="text-xs text-coral font-medium animate-pulse">← Obrigatório</span>}
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {fidelities.map(fidelity => (
-                  <FidelityCard
-                    key={fidelity.id}
-                    fidelity={fidelity}
-                    isSelected={selectedFidelity === fidelity.id}
-                    onSelect={() => setSelectedFidelity(fidelity.id)}
-                  />
-                ))}
-              </div>
-              
-              {showCardWarning && (
-                <div className="warning-card mt-3 animate-fade-in">
-                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                  <span>
-                    Essa opção exige <strong>limite disponível no cartão</strong> para parcelamento
-                  </span>
+              {/* Plan Selection */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="font-medium text-foreground">Escolha um plano base:</span>
                 </div>
-              )}
-            </section>
+                <PlanSelector selectedPlan={selectedPlan} onSelect={setSelectedPlan} />
+              </div>
 
-            {/* Modules Section */}
-            <section className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-7 h-7 rounded-lg bg-gradient-coral flex items-center justify-center text-sm font-bold text-accent-foreground shadow-coral">3</span>
-                <h2 className="text-lg font-bold text-foreground">Módulos Adicionais</h2>
-                <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Opcional</span>
+              {/* Period Selection */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="font-medium text-foreground">Período:</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {fidelities.map((fidelity) => (
+                    <PeriodCard
+                      key={fidelity.id}
+                      fidelity={fidelity}
+                      totalPrice={selectedPlan ? getPlanTotal(selectedPlan, fidelity.id) : fidelity.months * 179.99}
+                      isSelected={selectedFidelity?.id === fidelity.id}
+                      onSelect={() => setSelectedFidelity(fidelity)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {modules.map(module => (
-                  <ModuleCard
-                    key={module.id}
-                    module={module}
-                    fidelity={selectedFidelity}
-                    isSelected={selectedModules.includes(module.id)}
-                    onToggle={() => handleModuleToggle(module.id)}
-                  />
-                ))}
+
+              {/* Modules */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="font-medium text-foreground">Módulos adicionais:</span>
+                </div>
+                <div className="space-y-2">
+                  {modules.map((module) => (
+                    <ModuleCheckbox
+                      key={module.id}
+                      module={module}
+                      months={currentMonths}
+                      isSelected={selectedModules.some((m) => m.id === module.id)}
+                      onToggle={() => toggleModule(module)}
+                    />
+                  ))}
+                </div>
               </div>
-            </section>
+            </div>
           </div>
 
-          {/* Right Column - Summary */}
-          <aside className="lg:sticky lg:top-6 lg:self-start animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <SummaryPanel
-              selectedPlan={selectedPlanData}
-              selectedFidelity={selectedFidelity}
-              selectedModules={selectedModulesData}
+          {/* Right Column - Comparisons */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="w-6 h-6 rounded-full border-2 border-primary flex items-center justify-center">
+                <span className="w-2 h-2 rounded-full bg-primary" />
+              </span>
+              <h2 className="text-xl font-bold text-primary">Comparações</h2>
+            </div>
+
+            <ComparisonPanel
+              title="Combinação 1"
+              icon="💼"
+              plan={selectedPlan}
+              fidelity={selectedFidelity}
+              modules={selectedModules}
             />
-            
-            <button
-              disabled={!isComplete}
-              className={cn(
-                'btn-calculate w-full mt-4 flex items-center justify-center gap-2',
-                isComplete && 'animate-pulse hover:animate-none'
-              )}
-            >
-              {isComplete ? (
-                <>
-                  <Rocket className="w-5 h-5" />
-                  <span>Proposta Pronta!</span>
-                </>
-              ) : (
-                <span className="opacity-70">Selecione plano e fidelidade</span>
-              )}
-            </button>
-          </aside>
+
+            <ComparisonPanel
+              title="Combinação 2"
+              icon="🎯"
+              plan={null}
+              fidelity={null}
+              modules={[]}
+            />
+          </div>
         </div>
 
         {/* Footer */}
-        <footer className="text-center mt-6 py-3 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Uso interno • Calculadora para Closers • Valores atualizados
-          </p>
-        </footer>
+        <div className="text-center mt-8 text-sm text-muted-foreground">
+          Powered by <span className="font-semibold">CardápioWeb</span> - Automatizando seu negócio
+        </div>
       </div>
     </div>
   );
